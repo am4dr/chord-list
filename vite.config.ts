@@ -8,7 +8,8 @@ import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/chord-list/' : '/',
   plugins: [react()],
   test: {
     projects: [
@@ -42,4 +43,4 @@ export default defineConfig({
       },
     ],
   },
-});
+}));
