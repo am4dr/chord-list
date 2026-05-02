@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { formatChord, type Chord, type Quality } from '../../domain/chord';
 import { getFingering } from '../../domain/fingering';
 import type { Accidental, NaturalNote } from '../../domain/note';
@@ -24,6 +24,24 @@ const QUALITIES: ReadonlyArray<{ value: Quality; label: string }> = [
   { value: '7sus4', label: '7sus4' },
 ];
 
+const FIELDSET_ROW: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 16,
+};
+
+const OPTIONS: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 12,
+};
+
+const OPTION_LABEL: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+};
+
 export interface ChordSelectorProps {
   onSubmit: (chord: Chord) => void;
 }
@@ -45,52 +63,60 @@ export function ChordSelector({ onSubmit }: ChordSelectorProps) {
 
   return (
     <div>
-      <fieldset>
-        <legend>Root</legend>
-        {NATURAL_NOTES.map((n) => (
-          <label key={n}>
-            <input
-              type="radio"
-              name="chord-selector-root"
-              value={n}
-              checked={natural === n}
-              onChange={() => setNatural(n)}
-            />
-            {n}
-          </label>
-        ))}
-      </fieldset>
+      <div style={FIELDSET_ROW}>
+        <fieldset>
+          <legend>Root</legend>
+          <div style={OPTIONS}>
+            {NATURAL_NOTES.map((n) => (
+              <label key={n} style={OPTION_LABEL}>
+                <input
+                  type="radio"
+                  name="chord-selector-root"
+                  value={n}
+                  checked={natural === n}
+                  onChange={() => setNatural(n)}
+                />
+                {n}
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
-      <fieldset>
-        <legend>Accidental</legend>
-        {ACCIDENTAL_CHOICES.map((a) => (
-          <label key={a.value}>
-            <input
-              type="radio"
-              name="chord-selector-accidental"
-              value={a.value}
-              checked={accidental === a.value}
-              onChange={() => setAccidental(a.value)}
-            />
-            {a.label}
-          </label>
-        ))}
-      </fieldset>
+        <fieldset>
+          <legend>Accidental</legend>
+          <div style={OPTIONS}>
+            {ACCIDENTAL_CHOICES.map((a) => (
+              <label key={a.value} style={OPTION_LABEL}>
+                <input
+                  type="radio"
+                  name="chord-selector-accidental"
+                  value={a.value}
+                  checked={accidental === a.value}
+                  onChange={() => setAccidental(a.value)}
+                />
+                {a.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
 
       <fieldset>
         <legend>Quality</legend>
-        {QUALITIES.map((q) => (
-          <label key={q.value}>
-            <input
-              type="radio"
-              name="chord-selector-quality"
-              value={q.value}
-              checked={quality === q.value}
-              onChange={() => setQuality(q.value)}
-            />
-            {q.label}
-          </label>
-        ))}
+        <div style={OPTIONS}>
+          {QUALITIES.map((q) => (
+            <label key={q.value} style={OPTION_LABEL}>
+              <input
+                type="radio"
+                name="chord-selector-quality"
+                value={q.value}
+                checked={quality === q.value}
+                onChange={() => setQuality(q.value)}
+              />
+              {q.label}
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       <div aria-live="polite" data-testid="chord-preview">
