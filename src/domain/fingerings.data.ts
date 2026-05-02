@@ -1,12 +1,13 @@
-import type { Chord } from './chord';
+import type { Chord, Quality } from './chord';
 import type { Fingering } from './fingering';
+import { toPitchClass, type Note } from './note';
 
 interface Entry {
   chord: Chord;
   fingering: Fingering;
 }
 
-export const FINGERINGS: ReadonlyArray<Entry> = [
+const HAND_CRAFTED: ReadonlyArray<Entry> = [
   // Major
   { chord: { root: { natural: 'C' }, quality: 'major' }, fingering: { frets: [null, 3, 2, 0, 1, 0] } },
   { chord: { root: { natural: 'C', accidental: 'sharp' }, quality: 'major' }, fingering: { frets: [null, 4, 6, 6, 6, 4] } },
@@ -35,3 +36,81 @@ export const FINGERINGS: ReadonlyArray<Entry> = [
   { chord: { root: { natural: 'A', accidental: 'sharp' }, quality: 'minor' }, fingering: { frets: [null, 1, 3, 3, 2, 1] } },
   { chord: { root: { natural: 'B' }, quality: 'minor' }, fingering: { frets: [null, 2, 4, 4, 3, 2] } },
 ];
+
+type ExtendedQuality = Exclude<Quality, 'major' | 'minor'>;
+type Pattern = ReadonlyArray<number | null>;
+
+// Patterns are written for the open root position (offset 0).
+// Shifting up by N adds N to every non-null entry.
+const A_SHAPE: Record<ExtendedQuality, Pattern> = {
+  m7: [null, 0, 2, 0, 1, 0],
+  M7: [null, 0, 2, 1, 2, 0],
+  m9: [null, 0, 5, 5, 5, 7],
+  M9: [null, 0, 6, 6, 5, 7],
+  sus4: [null, 0, 2, 2, 3, 0],
+  '7sus4': [null, 0, 2, 0, 3, 0],
+};
+
+const E_SHAPE: Record<ExtendedQuality, Pattern> = {
+  m7: [0, 2, 0, 0, 0, 0],
+  M7: [0, 2, 1, 1, 0, 0],
+  m9: [0, 2, 0, 0, 0, 2],
+  M9: [0, 2, 1, 1, 0, 2],
+  sus4: [0, 2, 2, 2, 0, 0],
+  '7sus4': [0, 2, 0, 2, 0, 0],
+};
+
+const ROOTS: ReadonlyArray<Note> = [
+  { natural: 'C' },
+  { natural: 'C', accidental: 'sharp' },
+  { natural: 'D' },
+  { natural: 'D', accidental: 'sharp' },
+  { natural: 'E' },
+  { natural: 'F' },
+  { natural: 'F', accidental: 'sharp' },
+  { natural: 'G' },
+  { natural: 'G', accidental: 'sharp' },
+  { natural: 'A' },
+  { natural: 'A', accidental: 'sharp' },
+  { natural: 'B' },
+];
+
+const E_ROOT_PITCH = 4;
+const A_ROOT_PITCH = 9;
+
+const EXTENDED_QUALITIES: ReadonlyArray<ExtendedQuality> = [
+  'm7',
+  'M7',
+  'm9',
+  'M9',
+  'sus4',
+  '7sus4',
+];
+
+function shift(pattern: Pattern, offset: number): Fingering {
+  return {
+    frets: pattern.map((f) => (f === null ? null : f + offset)),
+  };
+}
+
+function generateExtended(): Entry[] {
+  const entries: Entry[] = [];
+  for (const root of ROOTS) {
+    const pc = toPitchClass(root);
+    const eOffset = (pc - E_ROOT_PITCH + 12) % 12;
+    const aOffset = (pc - A_ROOT_PITCH + 12) % 12;
+
+    for (const quality of EXTENDED_QUALITIES) {
+      // m9 / M9 stretch poorly when an A-shape barre is shifted up the neck,
+      // so always use the E-shape barre for those.
+      const forceE = quality === 'm9' || quality === 'M9';
+      const useE = forceE || eOffset <= aOffset;
+      const pattern = useE ? E_SHAPE[quality] : A_SHAPE[quality];
+      const offset = useE ? eOffset : aOffset;
+      entries.push({ chord: { root, quality }, fingering: shift(pattern, offset) });
+    }
+  }
+  return entries;
+}
+
+export const FINGERINGS: ReadonlyArray<Entry> = [...HAND_CRAFTED, ...generateExtended()];

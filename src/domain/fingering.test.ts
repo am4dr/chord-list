@@ -37,6 +37,27 @@ describe('getFingering', () => {
     const unsupported = { ...cDim, quality: 'diminished' } as unknown as Chord;
     expect(getFingering(unsupported)).toBeNull();
   });
+
+  it('returns the expected open shape for Em7', () => {
+    const em7: Chord = { root: { natural: 'E' }, quality: 'm7' };
+    expect(getFingering(em7)?.frets).toEqual([0, 2, 0, 0, 0, 0]);
+  });
+
+  it('returns the expected open shape for Am7', () => {
+    const am7: Chord = { root: { natural: 'A' }, quality: 'm7' };
+    expect(getFingering(am7)?.frets).toEqual([null, 0, 2, 0, 1, 0]);
+  });
+
+  it('returns an E-shape voicing for Cm9 (E-shape forced)', () => {
+    const cm9: Chord = { root: { natural: 'C' }, quality: 'm9' };
+    // E-shape m9 = [0, 2, 0, 0, 0, 2] shifted by 8 (C is 8 semitones above E)
+    expect(getFingering(cm9)?.frets).toEqual([8, 10, 8, 8, 8, 10]);
+  });
+
+  it('returns the expected open shape for Asus4', () => {
+    const asus4: Chord = { root: { natural: 'A' }, quality: 'sus4' };
+    expect(getFingering(asus4)?.frets).toEqual([null, 0, 2, 2, 3, 0]);
+  });
 });
 
 describe('FINGERINGS data integrity', () => {
@@ -46,8 +67,8 @@ describe('FINGERINGS data integrity', () => {
     }
   });
 
-  it('covers all 24 major/minor combinations', () => {
-    expect(FINGERINGS).toHaveLength(24);
+  it('covers all 12 roots × 8 qualities', () => {
+    expect(FINGERINGS).toHaveLength(96);
   });
 
   it('every fret value is null or a non-negative integer', () => {

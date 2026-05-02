@@ -16,6 +16,12 @@ const ACCIDENTAL_CHOICES: ReadonlyArray<{ value: AccidentalChoice; label: string
 const QUALITIES: ReadonlyArray<{ value: Quality; label: string }> = [
   { value: 'major', label: 'Major' },
   { value: 'minor', label: 'Minor' },
+  { value: 'm7', label: 'm7' },
+  { value: 'M7', label: 'M7' },
+  { value: 'm9', label: 'm9' },
+  { value: 'M9', label: 'M9' },
+  { value: 'sus4', label: 'sus4' },
+  { value: '7sus4', label: '7sus4' },
 ];
 
 export interface ChordSelectorProps {

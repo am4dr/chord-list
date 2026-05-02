@@ -25,6 +25,18 @@ describe('formatChord', () => {
       'Ebm',
     );
   });
+
+  it('appends extended quality suffixes verbatim', () => {
+    expect(formatChord({ root: { natural: 'A' }, quality: 'm7' })).toBe('Am7');
+    expect(formatChord({ root: { natural: 'C' }, quality: 'M7' })).toBe('CM7');
+    expect(formatChord({ root: { natural: 'A' }, quality: 'm9' })).toBe('Am9');
+    expect(formatChord({ root: { natural: 'C' }, quality: 'M9' })).toBe('CM9');
+    expect(formatChord({ root: { natural: 'D' }, quality: 'sus4' })).toBe('Dsus4');
+    expect(formatChord({ root: { natural: 'A' }, quality: '7sus4' })).toBe('A7sus4');
+    expect(formatChord({ root: { natural: 'F', accidental: 'sharp' }, quality: 'm7' })).toBe(
+      'F#m7',
+    );
+  });
 });
 
 describe('chordsEqual', () => {
