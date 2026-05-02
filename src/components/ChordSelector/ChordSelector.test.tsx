@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { CHORD_MIME } from '../dnd';
 import { ChordSelector } from './ChordSelector';
 
 const radio = (name: string) => screen.getByRole('radio', { name });
@@ -77,6 +78,31 @@ describe('ChordSelector', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       root: { natural: 'G' },
       quality: 'major',
+    });
+  });
+
+  it('writes the current chord to dataTransfer on preview dragstart', async () => {
+    const user = userEvent.setup();
+    render(<ChordSelector onSubmit={() => {}} />);
+
+    await user.click(radio('A'));
+    await user.click(radio('Minor'));
+
+    const data = new Map<string, string>();
+    const dataTransfer = {
+      getData: (type: string) => data.get(type) ?? '',
+      setData: (type: string, value: string) => {
+        data.set(type, value);
+      },
+      effectAllowed: 'all' as DataTransfer['effectAllowed'],
+      dropEffect: 'none' as DataTransfer['dropEffect'],
+    };
+
+    fireEvent.dragStart(screen.getByTestId('chord-preview'), { dataTransfer });
+
+    expect(JSON.parse(data.get(CHORD_MIME) ?? '{}')).toEqual({
+      root: { natural: 'A' },
+      quality: 'minor',
     });
   });
 });

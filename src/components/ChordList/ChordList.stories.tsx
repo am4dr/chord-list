@@ -8,6 +8,7 @@ const meta: Meta<typeof ChordList> = {
   args: {
     onRemove: fn(),
     onMove: fn(),
+    onInsert: fn(),
   },
 };
 export default meta;

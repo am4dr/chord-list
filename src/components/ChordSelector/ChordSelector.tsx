@@ -1,8 +1,9 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type DragEvent } from 'react';
 import { formatChord, type Chord, type Quality } from '../../domain/chord';
 import { getFingering } from '../../domain/fingering';
 import type { Accidental, NaturalNote } from '../../domain/note';
 import { ChordDiagram } from '../ChordDiagram/ChordDiagram';
+import { CHORD_MIME } from '../dnd';
 
 const NATURAL_NOTES: ReadonlyArray<NaturalNote> = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
@@ -119,7 +120,16 @@ export function ChordSelector({ onSubmit }: ChordSelectorProps) {
         </div>
       </fieldset>
 
-      <div aria-live="polite" data-testid="chord-preview">
+      <div
+        aria-live="polite"
+        data-testid="chord-preview"
+        draggable
+        onDragStart={(e: DragEvent) => {
+          e.dataTransfer.setData(CHORD_MIME, JSON.stringify(chord));
+          e.dataTransfer.effectAllowed = 'copy';
+        }}
+        style={{ cursor: 'grab', display: 'inline-block' }}
+      >
         <div>{chordName}</div>
         {fingering && <ChordDiagram fingering={fingering} ariaLabel={chordName} />}
       </div>

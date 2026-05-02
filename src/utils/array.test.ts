@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveItem, removeAt } from './array';
+import { insertAt, moveItem, removeAt } from './array';
 
 describe('removeAt', () => {
   it('removes the item at the given index', () => {
@@ -19,6 +19,29 @@ describe('removeAt', () => {
     const out = removeAt(input, 5);
     expect(out).toEqual(['a', 'b']);
     expect(out).not.toBe(input);
+  });
+});
+
+describe('insertAt', () => {
+  it('inserts an item at the given index', () => {
+    expect(insertAt(['a', 'b', 'c'], 'x', 1)).toEqual(['a', 'x', 'b', 'c']);
+  });
+
+  it('inserts at the start when index is 0', () => {
+    expect(insertAt(['a', 'b'], 'x', 0)).toEqual(['x', 'a', 'b']);
+  });
+
+  it('appends when index equals length', () => {
+    expect(insertAt(['a', 'b'], 'x', 2)).toEqual(['a', 'b', 'x']);
+  });
+
+  it('clamps an out-of-range index to the array bounds', () => {
+    expect(insertAt(['a', 'b'], 'x', 99)).toEqual(['a', 'b', 'x']);
+    expect(insertAt(['a', 'b'], 'x', -5)).toEqual(['x', 'a', 'b']);
+  });
+
+  it('inserts into an empty array', () => {
+    expect(insertAt([], 'x', 0)).toEqual(['x']);
   });
 });
 

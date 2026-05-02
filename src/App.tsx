@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Chord } from './domain/chord';
 import { ChordSelector } from './components/ChordSelector/ChordSelector';
 import { ChordList } from './components/ChordList/ChordList';
-import { moveItem, removeAt } from './utils/array';
+import { insertAt, moveItem, removeAt } from './utils/array';
 import './App.css';
 
 function App() {
@@ -20,12 +20,21 @@ function App() {
     setChords((prev) => moveItem(prev, from, to));
   };
 
+  const handleInsert = (chord: Chord, index: number) => {
+    setChords((prev) => insertAt(prev, chord, index));
+  };
+
   return (
     <main>
       <h1>Chords</h1>
       <ChordSelector onSubmit={handleAdd} />
       <hr />
-      <ChordList chords={chords} onRemove={handleRemove} onMove={handleMove} />
+      <ChordList
+        chords={chords}
+        onRemove={handleRemove}
+        onMove={handleMove}
+        onInsert={handleInsert}
+      />
     </main>
   );
 }
