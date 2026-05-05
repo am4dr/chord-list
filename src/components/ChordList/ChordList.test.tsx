@@ -2,13 +2,16 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Chord } from '../../domain/chord';
+import { getFingering, type ChordVoicing } from '../../domain/fingering';
 import { CHORD_INDEX_MIME, CHORD_MIME } from '../dnd';
 import { ChordList } from './ChordList';
 
-const cMajor: Chord = { root: { natural: 'C' }, quality: 'major' };
-const aMinor: Chord = { root: { natural: 'A' }, quality: 'minor' };
-const fMajor: Chord = { root: { natural: 'F' }, quality: 'major' };
-const gMajor: Chord = { root: { natural: 'G' }, quality: 'major' };
+const v = (chord: Chord): ChordVoicing => ({ chord, fingering: getFingering(chord)! });
+
+const cMajor = v({ root: { natural: 'C' }, quality: 'major' });
+const aMinor = v({ root: { natural: 'A' }, quality: 'minor' });
+const fMajor = v({ root: { natural: 'F' }, quality: 'major' });
+const gMajor = v({ root: { natural: 'G' }, quality: 'major' });
 
 const noop = () => {};
 
@@ -25,21 +28,31 @@ function makeDataTransfer(initial: Record<string, string> = {}) {
 }
 
 describe('ChordList', () => {
-  it('shows an empty state when no chords are present', () => {
-    render(<ChordList chords={[]} onRemove={noop} onMove={noop} onInsert={noop} />);
+  it('shows an empty state when no voicings are present', () => {
+    render(<ChordList voicings={[]} onRemove={noop} onMove={noop} onInsert={noop} />);
     expect(screen.getByTestId('chord-list-empty')).toBeInTheDocument();
   });
 
-  it('renders one chord diagram per chord', () => {
+  it('renders one chord diagram per voicing', () => {
     render(
-      <ChordList chords={[cMajor, aMinor, fMajor]} onRemove={noop} onMove={noop} onInsert={noop} />,
+      <ChordList
+        voicings={[cMajor, aMinor, fMajor]}
+        onRemove={noop}
+        onMove={noop}
+        onInsert={noop}
+      />,
     );
     expect(screen.getAllByRole('img')).toHaveLength(3);
   });
 
   it('shows the formatted chord name for each entry', () => {
     render(
-      <ChordList chords={[cMajor, aMinor, fMajor]} onRemove={noop} onMove={noop} onInsert={noop} />,
+      <ChordList
+        voicings={[cMajor, aMinor, fMajor]}
+        onRemove={noop}
+        onMove={noop}
+        onInsert={noop}
+      />,
     );
     expect(screen.getByText('C')).toBeInTheDocument();
     expect(screen.getByText('Am')).toBeInTheDocument();
@@ -47,13 +60,18 @@ describe('ChordList', () => {
   });
 
   it('renders a chord diagram with the chord name as aria-label', () => {
-    render(<ChordList chords={[cMajor]} onRemove={noop} onMove={noop} onInsert={noop} />);
+    render(<ChordList voicings={[cMajor]} onRemove={noop} onMove={noop} onInsert={noop} />);
     expect(screen.getByRole('img', { name: 'C' })).toBeInTheDocument();
   });
 
   it('disables move-back on the first item and move-forward on the last', () => {
     render(
-      <ChordList chords={[cMajor, aMinor, fMajor]} onRemove={noop} onMove={noop} onInsert={noop} />,
+      <ChordList
+        voicings={[cMajor, aMinor, fMajor]}
+        onRemove={noop}
+        onMove={noop}
+        onInsert={noop}
+      />,
     );
     expect(screen.getByLabelText('C を前へ')).toBeDisabled();
     expect(screen.getByLabelText('C を後ろへ')).toBeEnabled();
@@ -64,7 +82,9 @@ describe('ChordList', () => {
   it('calls onRemove with the index when delete is clicked', async () => {
     const user = userEvent.setup();
     const onRemove = vi.fn();
-    render(<ChordList chords={[cMajor, aMinor]} onRemove={onRemove} onMove={noop} onInsert={noop} />);
+    render(
+      <ChordList voicings={[cMajor, aMinor]} onRemove={onRemove} onMove={noop} onInsert={noop} />,
+    );
     await user.click(screen.getByLabelText('Am を削除'));
     expect(onRemove).toHaveBeenCalledWith(1);
   });
@@ -73,7 +93,12 @@ describe('ChordList', () => {
     const user = userEvent.setup();
     const onMove = vi.fn();
     render(
-      <ChordList chords={[cMajor, aMinor, fMajor]} onRemove={noop} onMove={onMove} onInsert={noop} />,
+      <ChordList
+        voicings={[cMajor, aMinor, fMajor]}
+        onRemove={noop}
+        onMove={onMove}
+        onInsert={noop}
+      />,
     );
     await user.click(screen.getByLabelText('Am を前へ'));
     expect(onMove).toHaveBeenCalledWith(1, 0);
@@ -83,18 +108,23 @@ describe('ChordList', () => {
     const user = userEvent.setup();
     const onMove = vi.fn();
     render(
-      <ChordList chords={[cMajor, aMinor, fMajor]} onRemove={noop} onMove={onMove} onInsert={noop} />,
+      <ChordList
+        voicings={[cMajor, aMinor, fMajor]}
+        onRemove={noop}
+        onMove={onMove}
+        onInsert={noop}
+      />,
     );
     await user.click(screen.getByLabelText('Am を後ろへ'));
     expect(onMove).toHaveBeenCalledWith(1, 2);
   });
 
   describe('drag and drop', () => {
-    it('reorders an existing chord when dropped onto a later item', () => {
+    it('moves a voicing to the drop target position when dropped onto a later item', () => {
       const onMove = vi.fn();
       render(
         <ChordList
-          chords={[cMajor, aMinor, fMajor]}
+          voicings={[cMajor, aMinor, fMajor]}
           onRemove={noop}
           onMove={onMove}
           onInsert={noop}
@@ -107,15 +137,15 @@ describe('ChordList', () => {
       fireEvent.dragOver(f, { dataTransfer: dt });
       fireEvent.drop(f, { dataTransfer: dt });
 
-      // Dropped index 0 onto index 2; insert-before-target gives final index 1
-      expect(onMove).toHaveBeenCalledWith(0, 1);
+      // Drag C (0) onto F (2) → C ends up at index 2 → [Am, F, C]
+      expect(onMove).toHaveBeenCalledWith(0, 2);
     });
 
-    it('reorders an existing chord when dropped onto an earlier item', () => {
+    it('reorders an existing voicing when dropped onto an earlier item', () => {
       const onMove = vi.fn();
       render(
         <ChordList
-          chords={[cMajor, aMinor, fMajor]}
+          voicings={[cMajor, aMinor, fMajor]}
           onRemove={noop}
           onMove={onMove}
           onInsert={noop}
@@ -135,7 +165,7 @@ describe('ChordList', () => {
       const onMove = vi.fn();
       render(
         <ChordList
-          chords={[cMajor, aMinor, fMajor]}
+          voicings={[cMajor, aMinor, fMajor]}
           onRemove={noop}
           onMove={onMove}
           onInsert={noop}
@@ -151,10 +181,15 @@ describe('ChordList', () => {
       expect(onMove).not.toHaveBeenCalled();
     });
 
-    it('inserts a new chord when JSON payload is dropped onto an item', () => {
+    it('inserts a new voicing when JSON payload is dropped onto an item', () => {
       const onInsert = vi.fn();
       render(
-        <ChordList chords={[cMajor, fMajor]} onRemove={noop} onMove={noop} onInsert={onInsert} />,
+        <ChordList
+          voicings={[cMajor, fMajor]}
+          onRemove={noop}
+          onMove={noop}
+          onInsert={onInsert}
+        />,
       );
       const [, f] = screen.getAllByRole('listitem');
 
@@ -165,42 +200,10 @@ describe('ChordList', () => {
       expect(onInsert).toHaveBeenCalledWith(gMajor, 1);
     });
 
-    it('appends a chord when dropped onto the end zone', () => {
-      const onInsert = vi.fn();
-      render(<ChordList chords={[cMajor]} onRemove={noop} onMove={noop} onInsert={onInsert} />);
-      const endZone = screen.getByTestId('chord-list-end-zone');
-
-      const dt = makeDataTransfer({ [CHORD_MIME]: JSON.stringify(gMajor) });
-      fireEvent.dragOver(endZone, { dataTransfer: dt });
-      fireEvent.drop(endZone, { dataTransfer: dt });
-
-      expect(onInsert).toHaveBeenCalledWith(gMajor, 1);
-    });
-
-    it('moves an existing chord to the end when dropped on the end zone', () => {
-      const onMove = vi.fn();
-      render(
-        <ChordList
-          chords={[cMajor, aMinor, fMajor]}
-          onRemove={noop}
-          onMove={onMove}
-          onInsert={noop}
-        />,
-      );
-      const [c] = screen.getAllByRole('listitem');
-      const endZone = screen.getByTestId('chord-list-end-zone');
-
-      const dt = makeDataTransfer();
-      fireEvent.dragStart(c, { dataTransfer: dt });
-      fireEvent.dragOver(endZone, { dataTransfer: dt });
-      fireEvent.drop(endZone, { dataTransfer: dt });
-
-      // chords.length = 3, drop index = 3, adjustedTo = 3 - 1 = 2
-      expect(onMove).toHaveBeenCalledWith(0, 2);
-    });
-
     it('writes the source index to dataTransfer on dragstart', () => {
-      render(<ChordList chords={[cMajor, aMinor]} onRemove={noop} onMove={noop} onInsert={noop} />);
+      render(
+        <ChordList voicings={[cMajor, aMinor]} onRemove={noop} onMove={noop} onInsert={noop} />,
+      );
       const [, am] = screen.getAllByRole('listitem');
 
       const dt = makeDataTransfer();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Chord } from './chord';
-import { getFingering } from './fingering';
+import { getFingering, getFingeringCandidates } from './fingering';
 import { FINGERINGS } from './fingerings.data';
 
 describe('getFingering', () => {
@@ -57,6 +57,46 @@ describe('getFingering', () => {
   it('returns the expected open shape for Asus4', () => {
     const asus4: Chord = { root: { natural: 'A' }, quality: 'sus4' };
     expect(getFingering(asus4)?.frets).toEqual([null, 0, 2, 2, 3, 0]);
+  });
+});
+
+describe('getFingeringCandidates', () => {
+  it('returns the open shape first, followed by barre voicings, for C major', () => {
+    const c: Chord = { root: { natural: 'C' }, quality: 'major' };
+    const candidates = getFingeringCandidates(c);
+    expect(candidates).toHaveLength(3);
+    expect(candidates[0].frets).toEqual([null, 3, 2, 0, 1, 0]); // open C
+    // The remaining two are E-shape barre at fret 8 and A-shape barre at fret 3.
+    const remaining = candidates.slice(1).map((f) => f.frets);
+    expect(remaining).toContainEqual([8, 10, 10, 9, 8, 8]);
+    expect(remaining).toContainEqual([null, 3, 5, 5, 5, 3]);
+  });
+
+  it('deduplicates when the open shape coincides with a barre pattern (E major)', () => {
+    const e: Chord = { root: { natural: 'E' }, quality: 'major' };
+    const candidates = getFingeringCandidates(e);
+    expect(candidates).toHaveLength(2);
+    expect(candidates[0].frets).toEqual([0, 2, 2, 1, 0, 0]); // open E (== E-shape at offset 0)
+    expect(candidates[1].frets).toEqual([null, 7, 9, 9, 9, 7]); // A-shape barre
+  });
+
+  it('returns a single E-shape voicing for m9 chords (A-shape suppressed)', () => {
+    const cm9: Chord = { root: { natural: 'C' }, quality: 'm9' };
+    const candidates = getFingeringCandidates(cm9);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].frets).toEqual([8, 10, 8, 8, 8, 10]);
+  });
+
+  it('returns two voicings for sus4 chords (E-shape and A-shape)', () => {
+    const csus4: Chord = { root: { natural: 'C' }, quality: 'sus4' };
+    const candidates = getFingeringCandidates(csus4);
+    expect(candidates).toHaveLength(2);
+  });
+
+  it('returns the same candidates for enharmonic roots', () => {
+    const cSharp: Chord = { root: { natural: 'C', accidental: 'sharp' }, quality: 'major' };
+    const dFlat: Chord = { root: { natural: 'D', accidental: 'flat' }, quality: 'major' };
+    expect(getFingeringCandidates(dFlat)).toEqual(getFingeringCandidates(cSharp));
   });
 });
 

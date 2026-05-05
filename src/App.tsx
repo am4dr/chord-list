@@ -1,27 +1,27 @@
 import { useState } from 'react';
-import type { Chord } from './domain/chord';
+import type { ChordVoicing } from './domain/fingering';
 import { ChordSelector } from './components/ChordSelector/ChordSelector';
 import { ChordList } from './components/ChordList/ChordList';
 import { insertAt, moveItem, removeAt } from './utils/array';
 import './App.css';
 
 function App() {
-  const [chords, setChords] = useState<Chord[]>([]);
+  const [voicings, setVoicings] = useState<ChordVoicing[]>([]);
 
-  const handleAdd = (chord: Chord) => {
-    setChords((prev) => [...prev, chord]);
+  const handleAdd = (voicing: ChordVoicing) => {
+    setVoicings((prev) => [...prev, voicing]);
   };
 
   const handleRemove = (index: number) => {
-    setChords((prev) => removeAt(prev, index));
+    setVoicings((prev) => removeAt(prev, index));
   };
 
   const handleMove = (from: number, to: number) => {
-    setChords((prev) => moveItem(prev, from, to));
+    setVoicings((prev) => moveItem(prev, from, to));
   };
 
-  const handleInsert = (chord: Chord, index: number) => {
-    setChords((prev) => insertAt(prev, chord, index));
+  const handleInsert = (voicing: ChordVoicing, index: number) => {
+    setVoicings((prev) => insertAt(prev, voicing, index));
   };
 
   return (
@@ -30,7 +30,7 @@ function App() {
       <ChordSelector onSubmit={handleAdd} />
       <hr />
       <ChordList
-        chords={chords}
+        voicings={voicings}
         onRemove={handleRemove}
         onMove={handleMove}
         onInsert={handleInsert}

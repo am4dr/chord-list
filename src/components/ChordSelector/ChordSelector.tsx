@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type DragEvent } from 'react';
 import { formatChord, type Chord, type Quality } from '../../domain/chord';
-import { getFingering } from '../../domain/fingering';
+import { getFingeringCandidates, type ChordVoicing, type Fingering } from '../../domain/fingering';
 import type { Accidental, NaturalNote } from '../../domain/note';
 import { ChordDiagram } from '../ChordDiagram/ChordDiagram';
 import { CHORD_MIME } from '../dnd';
@@ -43,8 +43,23 @@ const OPTION_LABEL: CSSProperties = {
   gap: 4,
 };
 
+const CANDIDATES_ROW: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 16,
+  marginTop: 8,
+};
+
+const CANDIDATE_CARD: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 4,
+  cursor: 'grab',
+};
+
 export interface ChordSelectorProps {
-  onSubmit: (chord: Chord) => void;
+  onSubmit: (voicing: ChordVoicing) => void;
 }
 
 export function ChordSelector({ onSubmit }: ChordSelectorProps) {
@@ -60,7 +75,13 @@ export function ChordSelector({ onSubmit }: ChordSelectorProps) {
     quality,
   };
   const chordName = formatChord(chord);
-  const fingering = getFingering(chord);
+  const candidates = getFingeringCandidates(chord);
+
+  const handleDragStart = (e: DragEvent, fingering: Fingering) => {
+    const voicing: ChordVoicing = { chord, fingering };
+    e.dataTransfer.setData(CHORD_MIME, JSON.stringify(voicing));
+    e.dataTransfer.effectAllowed = 'copy';
+  };
 
   return (
     <div>
@@ -120,23 +141,29 @@ export function ChordSelector({ onSubmit }: ChordSelectorProps) {
         </div>
       </fieldset>
 
-      <div
-        aria-live="polite"
-        data-testid="chord-preview"
-        draggable
-        onDragStart={(e: DragEvent) => {
-          e.dataTransfer.setData(CHORD_MIME, JSON.stringify(chord));
-          e.dataTransfer.effectAllowed = 'copy';
-        }}
-        style={{ cursor: 'grab', display: 'inline-block' }}
-      >
+      <div aria-live="polite" data-testid="chord-preview">
         <div>{chordName}</div>
-        {fingering && <ChordDiagram fingering={fingering} ariaLabel={chordName} />}
+        {candidates.length === 0 ? (
+          <div data-testid="chord-preview-empty">運指データがありません</div>
+        ) : (
+          <div style={CANDIDATES_ROW}>
+            {candidates.map((fingering, i) => (
+              <div
+                key={i}
+                data-testid="chord-candidate"
+                draggable
+                onDragStart={(e) => handleDragStart(e, fingering)}
+                style={CANDIDATE_CARD}
+              >
+                <ChordDiagram fingering={fingering} ariaLabel={chordName} />
+                <button type="button" onClick={() => onSubmit({ chord, fingering })}>
+                  追加
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      <button type="button" onClick={() => onSubmit(chord)}>
-        追加
-      </button>
     </div>
   );
 }

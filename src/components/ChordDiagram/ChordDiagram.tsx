@@ -77,9 +77,11 @@ export function ChordDiagram({ fingering, width = 100, ariaLabel = 'chord diagra
         ) : null,
       )}
       {!view.showNut && (
+        // Sits just below the top fret line, above the first dot row,
+        // so it never overlaps a dot on the 1st string at this fret.
         <text
           x={GRID_RIGHT + 3}
-          y={fretY(0) + FRET_SPACING / 2 + 3}
+          y={fretY(0) + 4}
           fontSize={8}
           fontFamily="sans-serif"
           fill="currentColor"

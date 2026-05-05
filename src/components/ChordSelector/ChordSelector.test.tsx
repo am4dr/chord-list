@@ -15,14 +15,20 @@ describe('ChordSelector', () => {
     expect(radio('Major')).toBeChecked();
   });
 
-  it('renders the diagram for the currently selected chord', async () => {
+  it('renders at least one diagram for the currently selected chord', async () => {
     const user = userEvent.setup();
     render(<ChordSelector onSubmit={() => {}} />);
-    expect(screen.getByRole('img', { name: 'C' })).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: 'C' }).length).toBeGreaterThan(0);
 
     await user.click(radio('A'));
     await user.click(radio('Minor'));
-    expect(screen.getByRole('img', { name: 'Am' })).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: 'Am' }).length).toBeGreaterThan(0);
+  });
+
+  it('renders multiple voicing candidates for chords with both open and barre shapes', () => {
+    render(<ChordSelector onSubmit={() => {}} />);
+    // C major has open + E-shape barre + A-shape barre = 3 candidates.
+    expect(screen.getAllByTestId('chord-candidate')).toHaveLength(3);
   });
 
   it('updates the preview when the root changes', async () => {
@@ -51,7 +57,7 @@ describe('ChordSelector', () => {
     expect(screen.getByTestId('chord-preview')).toHaveTextContent('Am');
   });
 
-  it('submits the current chord when the add button is clicked', async () => {
+  it('submits a voicing when an 追加 button is clicked', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     render(<ChordSelector onSubmit={onSubmit} />);
@@ -59,12 +65,34 @@ describe('ChordSelector', () => {
     await user.click(radio('C'));
     await user.click(radio('♯'));
     await user.click(radio('Minor'));
-    await user.click(screen.getByRole('button', { name: '追加' }));
 
-    expect(onSubmit).toHaveBeenCalledWith({
+    const buttons = screen.getAllByRole('button', { name: '追加' });
+    await user.click(buttons[0]);
+
+    const arg = onSubmit.mock.calls[0][0];
+    expect(arg.chord).toEqual({
       root: { natural: 'C', accidental: 'sharp' },
       quality: 'minor',
     });
+    expect(arg.fingering).toBeDefined();
+    expect(arg.fingering.frets).toHaveLength(6);
+  });
+
+  it('submits the specific candidate fingering that the user clicked', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<ChordSelector onSubmit={onSubmit} />);
+
+    // C major has 3 candidates; the second and third are distinct from the first.
+    const buttons = screen.getAllByRole('button', { name: '追加' });
+    expect(buttons.length).toBeGreaterThan(1);
+    await user.click(buttons[1]);
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const arg = onSubmit.mock.calls[0][0];
+    expect(arg.chord).toEqual({ root: { natural: 'C' }, quality: 'major' });
+    // Second candidate is the A-shape barre for C major (lower on the neck than E-shape).
+    expect(arg.fingering.frets).toEqual([null, 3, 5, 5, 5, 3]);
   });
 
   it('omits the accidental key when natural is selected', async () => {
@@ -73,15 +101,16 @@ describe('ChordSelector', () => {
     render(<ChordSelector onSubmit={onSubmit} />);
 
     await user.click(radio('G'));
-    await user.click(screen.getByRole('button', { name: '追加' }));
+    const buttons = screen.getAllByRole('button', { name: '追加' });
+    await user.click(buttons[0]);
 
-    expect(onSubmit).toHaveBeenCalledWith({
+    expect(onSubmit.mock.calls[0][0].chord).toEqual({
       root: { natural: 'G' },
       quality: 'major',
     });
   });
 
-  it('writes the current chord to dataTransfer on preview dragstart', async () => {
+  it('writes a voicing to dataTransfer on candidate dragstart', async () => {
     const user = userEvent.setup();
     render(<ChordSelector onSubmit={() => {}} />);
 
@@ -98,11 +127,15 @@ describe('ChordSelector', () => {
       dropEffect: 'none' as DataTransfer['dropEffect'],
     };
 
-    fireEvent.dragStart(screen.getByTestId('chord-preview'), { dataTransfer });
+    const [firstCandidate] = screen.getAllByTestId('chord-candidate');
+    fireEvent.dragStart(firstCandidate, { dataTransfer });
 
-    expect(JSON.parse(data.get(CHORD_MIME) ?? '{}')).toEqual({
+    const payload = JSON.parse(data.get(CHORD_MIME) ?? '{}');
+    expect(payload.chord).toEqual({
       root: { natural: 'A' },
       quality: 'minor',
     });
+    expect(payload.fingering).toBeDefined();
+    expect(payload.fingering.frets).toHaveLength(6);
   });
 });

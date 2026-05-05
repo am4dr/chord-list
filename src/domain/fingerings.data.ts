@@ -37,12 +37,14 @@ const HAND_CRAFTED: ReadonlyArray<Entry> = [
   { chord: { root: { natural: 'B' }, quality: 'minor' }, fingering: { frets: [null, 2, 4, 4, 3, 2] } },
 ];
 
-type ExtendedQuality = Exclude<Quality, 'major' | 'minor'>;
 type Pattern = ReadonlyArray<number | null>;
 
 // Patterns are written for the open root position (offset 0).
-// Shifting up by N adds N to every non-null entry.
-const A_SHAPE: Record<ExtendedQuality, Pattern> = {
+// Shifting up by N adds N to every non-null entry. The major/minor entries
+// at offset 0 are exactly the open E / open A chord shapes.
+const A_SHAPE: Record<Quality, Pattern> = {
+  major: [null, 0, 2, 2, 2, 0],
+  minor: [null, 0, 2, 2, 1, 0],
   m7: [null, 0, 2, 0, 1, 0],
   M7: [null, 0, 2, 1, 2, 0],
   m9: [null, 0, 5, 5, 5, 7],
@@ -51,7 +53,9 @@ const A_SHAPE: Record<ExtendedQuality, Pattern> = {
   '7sus4': [null, 0, 2, 0, 3, 0],
 };
 
-const E_SHAPE: Record<ExtendedQuality, Pattern> = {
+const E_SHAPE: Record<Quality, Pattern> = {
+  major: [0, 2, 2, 1, 0, 0],
+  minor: [0, 2, 2, 0, 0, 0],
   m7: [0, 2, 0, 0, 0, 0],
   M7: [0, 2, 1, 1, 0, 0],
   m9: [0, 2, 0, 0, 0, 2],
@@ -78,6 +82,7 @@ const ROOTS: ReadonlyArray<Note> = [
 const E_ROOT_PITCH = 4;
 const A_ROOT_PITCH = 9;
 
+type ExtendedQuality = Exclude<Quality, 'major' | 'minor'>;
 const EXTENDED_QUALITIES: ReadonlyArray<ExtendedQuality> = [
   'm7',
   'M7',
@@ -93,21 +98,34 @@ function shift(pattern: Pattern, offset: number): Fingering {
   };
 }
 
+// m9 / M9 stretch poorly when an A-shape barre is shifted up the neck,
+// so always use the E-shape barre for those.
+function isEShapeOnly(quality: Quality): boolean {
+  return quality === 'm9' || quality === 'M9';
+}
+
+/**
+ * Returns generated barre voicings (E-shape and A-shape) for the chord,
+ * ordered by which sits lower on the neck. m9 / M9 return only the E-shape.
+ */
+export function generateBarreCandidates(chord: Chord): Fingering[] {
+  const pc = toPitchClass(chord.root);
+  const eOffset = (pc - E_ROOT_PITCH + 12) % 12;
+  const aOffset = (pc - A_ROOT_PITCH + 12) % 12;
+  const eShape = shift(E_SHAPE[chord.quality], eOffset);
+
+  if (isEShapeOnly(chord.quality)) return [eShape];
+
+  const aShape = shift(A_SHAPE[chord.quality], aOffset);
+  return eOffset <= aOffset ? [eShape, aShape] : [aShape, eShape];
+}
+
 function generateExtended(): Entry[] {
   const entries: Entry[] = [];
   for (const root of ROOTS) {
-    const pc = toPitchClass(root);
-    const eOffset = (pc - E_ROOT_PITCH + 12) % 12;
-    const aOffset = (pc - A_ROOT_PITCH + 12) % 12;
-
     for (const quality of EXTENDED_QUALITIES) {
-      // m9 / M9 stretch poorly when an A-shape barre is shifted up the neck,
-      // so always use the E-shape barre for those.
-      const forceE = quality === 'm9' || quality === 'M9';
-      const useE = forceE || eOffset <= aOffset;
-      const pattern = useE ? E_SHAPE[quality] : A_SHAPE[quality];
-      const offset = useE ? eOffset : aOffset;
-      entries.push({ chord: { root, quality }, fingering: shift(pattern, offset) });
+      const [primary] = generateBarreCandidates({ root, quality });
+      entries.push({ chord: { root, quality }, fingering: primary });
     }
   }
   return entries;
