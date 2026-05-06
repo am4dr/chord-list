@@ -75,7 +75,6 @@ function App() {
         onLoad={handleLoadList}
         onDelete={handleDeleteList}
       />
-      <hr />
       <ChordList
         voicings={voicings}
         onRemove={handleRemove}
