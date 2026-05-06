@@ -45,11 +45,23 @@ Three layers, with a strict dependency direction (domain ← components ← App)
 
 The generator picks E-shape vs A-shape barre based on which sits lower on the neck, **except for m9/M9 which are pinned to E-shape** because the A-shape m9 voicing requires an unplayable stretch when shifted up. `generateBarreCandidates` returns both shapes (lower-on-neck first), or just the E-shape for m9/M9. `FINGERINGS`' generated entries take only the first (primary) candidate.
 
-### `src/components/` — three components, each in its own folder with `.tsx`, `.test.tsx`, `.stories.tsx`
+### `src/components/` — components live in their own folder with `.tsx`, `.test.tsx`, `.stories.tsx`
 
 - `ChordDiagram` — renders an SVG. Pure: takes a Fingering, returns SVG. Uses `stroke="currentColor"` / `fill="currentColor"` so it inherits theme colors from the parent (the `index.css` `prefers-color-scheme` block sets the parent `color`). The fret window helper (`fretWindow.ts`) decides whether to show the nut or a `Nfr` label.
 - `ChordSelector` — three radio fieldsets (root / accidental / quality) + live preview that includes its own `ChordDiagram`. The preview is `draggable` and exports the chord JSON via `dataTransfer`.
 - `ChordList` — receives `voicings` and four callbacks (`onRemove`, `onMove`, `onInsert`). Click-based reorder/delete buttons coexist with HTML5 drag-and-drop. Drag-and-drop only inserts before an existing item; appending is done via the selector's 追加 button.
+- `SavedLists` — purely controlled. App owns the `Record<name, ChordVoicing[]>` map and passes the three handlers (`onSave`, `onLoad`, `onDelete`). Internal state is just the name input buffer. Save button is gated on `currentCount > 0 && trimmed name`.
+
+### Persistence (`src/utils/storage.ts`)
+
+Two localStorage keys, both wrapped in a `{ version: 1, ... }` envelope so future schema changes can bump the key (`...:v2`) and add migration in the loader without touching call sites.
+
+- `chords:savedLists:v1` — `{ version, lists: Record<string, ChordVoicing[]> }`. Named, user-saved lists.
+- `chords:current:v1` — `{ version, voicings: ChordVoicing[] }`. The working list, auto-persisted via a `useEffect` in `App.tsx` so a reload restores in-progress edits.
+
+`loadSavedLists` / `loadCurrentList` never throw: malformed JSON, wrong shape, or wrong version all log to `console.warn` and return an empty value. `putSavedList` / `saveCurrentList` deep-clone voicings (`{...chord, root: {...}}`, `[...frets]`) so storage is decoupled from React state references — later mutations on either side don't leak. `App.tsx` is the single owner of `savedLists` state; `SavedLists` reads it via props. No `storage` event listener — cross-tab sync is intentionally deferred.
+
+Confirmation flows use `window.confirm` for overwrite-on-save, replace-on-load (when the working list is non-empty), and delete. jsdom auto-accepts; tests can override with `vi.spyOn(window, 'confirm').mockReturnValue(...)` if they need to assert the dialog branch.
 
 ### Drag-and-drop contract (`src/components/dnd.ts`)
 
